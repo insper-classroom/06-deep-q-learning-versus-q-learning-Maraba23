@@ -22,7 +22,7 @@ colors = sns.color_palette("viridis", 10)
 # Configurações globais
 SEED = 42
 EXECUTIONS = 5
-EPISODES = 1000
+EPISODES = 1500
 SMOOTHING_WINDOW = 100  # Para suavizar as curvas de recompensa
 
 # Configurar seeds para reprodutibilidade
@@ -186,10 +186,10 @@ def run_dqn(episodes=EPISODES, seed=None):
         gamma=0.99,
         epsilon=1.0,
         epsilon_min=0.01,
-        epsilon_dec=0.9998,  # Ajustado para 5000 episódios
+        epsilon_dec=0.999,  # Ajustado para 5000 episódios
         batch_size=64,
         memory_size=100000,
-        max_steps=200,
+        max_steps=2000,
         lr=0.001,
         target_update_freq=100
     )
@@ -236,7 +236,7 @@ def run_dqn(episodes=EPISODES, seed=None):
     env.close()
     return rewards_history
 
-def run_qlearn(episodes=EPISODES, seed=None):
+def run_qlearn(episodes=EPISODES, seed=None, max_steps=200):
     """Executa o algoritmo Q-Learning por um número específico de episódios"""
     if seed is not None:
         np.random.seed(seed)
@@ -261,8 +261,11 @@ def run_qlearn(episodes=EPISODES, seed=None):
         state = discretize_state(state, env, num_bins)
         done = False
         total_reward = 0
+        steps = 0
         
-        while not done:
+        while not done and steps < max_steps:
+            steps += 1
+            
             if np.random.rand() < epsilon:
                 action = env.action_space.sample()
             else:
@@ -281,9 +284,9 @@ def run_qlearn(episodes=EPISODES, seed=None):
         epsilon = max(epsilon_min, epsilon * epsilon_decay)
         rewards_history.append(total_reward)
         
-        if episode % 100 == 0:
-            avg_reward = np.mean(rewards_history[-100:]) if episode >= 100 else np.mean(rewards_history)
-            print(f"Q-Learning - Episódio {episode}/{episodes} - Recompensa: {total_reward:.2f} - Média: {avg_reward:.2f} - Epsilon: {epsilon:.4f}")
+        #if episode % 100 == 0:
+        avg_reward = np.mean(rewards_history[-100:]) if episode >= 100 else np.mean(rewards_history)
+        print(f"Q-Learning - Episódio {episode}/{episodes} - Recompensa: {total_reward:.2f} - Média: {avg_reward:.2f} - Epsilon: {epsilon:.4f}")
     
     env.close()
     return rewards_history, q_table
@@ -317,7 +320,7 @@ def main():
         # Executar Q-Learning
         print(f"\nIniciando Q-Learning - Execução {execution + 1}...")
         start_time = time.time()
-        qlearn_rewards, q_table = run_qlearn(episodes=EPISODES, seed=execution_seed)
+        qlearn_rewards, q_table = run_qlearn(episodes=EPISODES, seed=execution_seed, max_steps=2000)
         qlearn_time = time.time() - start_time
         qlearn_results.append(qlearn_rewards)
         print(f"Q-Learning concluído em {qlearn_time:.2f} segundos")
@@ -395,7 +398,7 @@ def main():
             )
     
     # Linha horizontal destacando quando o ambiente é considerado resolvido
-    plt.axhline(y=-110, color='green', linestyle='--', alpha=0.7, label='Ambiente Resolvido (-110)')
+    plt.axhline(y=-300, color='green', linestyle='--', alpha=0.7, label='Ambiente Resolvido (-300)')
     
     # Adicionar títulos e legendas
     plt.title('Comparação de Desempenho: DQN vs Q-Learning no MountainCar-v0', fontsize=20, pad=20)
